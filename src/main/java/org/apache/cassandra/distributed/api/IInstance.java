@@ -22,6 +22,8 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import org.apache.cassandra.distributed.shared.SimpleQueryResult;
+
 // The cross-version API requires that an Instance has a constructor signature of (IInstanceConfig, ClassLoader)
 public interface IInstance extends IIsolatedExecutor
 {
@@ -35,7 +37,7 @@ public interface IInstance extends IIsolatedExecutor
         return executeInternalWithResult(query, args).toObjectArrays();
     }
 
-    CompleteQueryResult executeInternalWithResult(String query, Object... args);
+    SimpleQueryResult executeInternalWithResult(String query, Object... args);
 
     IInstanceConfig config();
 

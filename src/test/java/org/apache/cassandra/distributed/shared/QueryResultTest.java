@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.cassandra.distributed.api;
-
-import org.apache.cassandra.distributed.shared.AssertUtils;
-import org.junit.jupiter.api.Test;
+package org.apache.cassandra.distributed.shared;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import org.junit.jupiter.api.Test;
+
+import org.apache.cassandra.distributed.api.QueryResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,21 +36,21 @@ public class QueryResultTest
     @Test
     public void empty()
     {
-        QueryResult result = QueryResults.getEmpty();
+        QueryResult result = QueryResults.empty();
 
-        assertThat(result.getNames()).isEmpty();
+        assertThat(result.names()).isEmpty();
         assertThat(result.toString()).isEqualTo("[]");
 
         assertThat(result.hasNext()).isFalse();
-        assertThatThrownBy(() -> result.next()).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(result::next).isInstanceOf(NoSuchElementException.class);
 
         QueryResult filtered = result.filter(ignore -> true);
         assertThat(filtered.hasNext()).isFalse();
-        assertThatThrownBy(() -> filtered.next()).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(filtered::next).isInstanceOf(NoSuchElementException.class);
 
         Iterator<Object> it = result.map(r -> r.get("undefined"));
         assertThat(it.hasNext()).isFalse();
-        assertThatThrownBy(() -> it.next()).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(it::next).isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -61,13 +62,13 @@ public class QueryResultTest
                 new Object[] { "alex", "petrov"},
                 new Object[] { "dinesh", "joshi"},
         };
-        CompleteQueryResult result = new CompleteQueryResult(names, rows);
-        CompleteQueryResult fromBuilder = QueryResults.builder()
-                .columnNames(names)
-                .row(rows[0])
-                .row(rows[1])
-                .row(rows[2])
-                .build();
+        SimpleQueryResult result = new SimpleQueryResult(names, rows);
+        SimpleQueryResult fromBuilder = QueryResults.builder()
+                                                    .columns(names)
+                                                    .row(rows[0])
+                                                    .row(rows[1])
+                                                    .row(rows[2])
+                                                    .build();
 
         AssertUtils.assertRows(result, fromBuilder);
     }
@@ -81,14 +82,14 @@ public class QueryResultTest
                 new Object[] { "alex", "petrov"},
                 new Object[] { "dinesh", "joshi"},
         };
-        CompleteQueryResult result = new CompleteQueryResult(names, rows);
-        CompleteQueryResult fromBuilder = QueryResults.builder()
-                .columnNames(names)
-                .row(rows[0])
-                .row(rows[1])
-                .row(rows[2])
-                .row("chris", "lohfink")
-                .build();
+        SimpleQueryResult result = new SimpleQueryResult(names, rows);
+        SimpleQueryResult fromBuilder = QueryResults.builder()
+                                                    .columns(names)
+                                                    .row(rows[0])
+                                                    .row(rows[1])
+                                                    .row(rows[2])
+                                                    .row("chris", "lohfink")
+                                                    .build();
 
         assertThatThrownBy(() -> AssertUtils.assertRows(result, fromBuilder))
                 .isInstanceOf(AssertionError.class)
@@ -105,13 +106,13 @@ public class QueryResultTest
                 new Object[] { "alex", "petrov"},
                 new Object[] { "dinesh", "joshi"},
         };
-        CompleteQueryResult result = new CompleteQueryResult(names, rows);
-        CompleteQueryResult fromBuilder = QueryResults.builder()
-                .columnNames("fname")
-                .row("david")
-                .row("alex")
-                .row("dinesh")
-                .build();
+        SimpleQueryResult result = new SimpleQueryResult(names, rows);
+        SimpleQueryResult fromBuilder = QueryResults.builder()
+                                                    .columns("fname")
+                                                    .row("david")
+                                                    .row("alex")
+                                                    .row("dinesh")
+                                                    .build();
 
         assertThatThrownBy(() -> AssertUtils.assertRows(result, fromBuilder))
                 .isInstanceOf(AssertionError.class)
@@ -128,13 +129,13 @@ public class QueryResultTest
                 new Object[] { "alex", "petrov"},
                 new Object[] { "dinesh", "joshi"},
         };
-        CompleteQueryResult result = new CompleteQueryResult(names, rows);
-        CompleteQueryResult fromBuilder = QueryResults.builder()
-                .columnNames(names)
-                .row("david", "Capwell")
-                .row("alex", "Petrov")
-                .row("dinesh", "Joshi")
-                .build();
+        SimpleQueryResult result = new SimpleQueryResult(names, rows);
+        SimpleQueryResult fromBuilder = QueryResults.builder()
+                                                    .columns(names)
+                                                    .row("david", "Capwell")
+                                                    .row("alex", "Petrov")
+                                                    .row("dinesh", "Joshi")
+                                                    .build();
 
         assertThatThrownBy(() -> AssertUtils.assertRows(result, fromBuilder))
                 .isInstanceOf(AssertionError.class)
@@ -145,14 +146,14 @@ public class QueryResultTest
     @Test
     public void completeFilter()
     {
-        CompleteQueryResult qr = QueryResults.builder()
-                .row(1, 2, 3, 4)
-                .row(5, 6, 7, 7)
-                .row(1, 2, 4, 8)
-                .row(2, 4, 6, 12)
-                .build();
+        SimpleQueryResult qr = QueryResults.builder()
+                                           .row(1, 2, 3, 4)
+                                           .row(5, 6, 7, 7)
+                                           .row(1, 2, 4, 8)
+                                           .row(2, 4, 6, 12)
+                                           .build();
 
-        CompleteQueryResult filtered = qr.filter(row -> row.getInteger(0).intValue() != 1);
+        SimpleQueryResult filtered = qr.filter(row -> row.getInteger(0).intValue() != 1);
 
         AssertUtils.assertRows(filtered, QueryResults.builder()
                 .row(5, 6, 7, 7)
@@ -163,12 +164,12 @@ public class QueryResultTest
     @Test
     public void completeMap()
     {
-        CompleteQueryResult qr = QueryResults.builder()
-                .row(1, 2, 3, 4)
-                .row(5, 6, 7, 7)
-                .row(1, 2, 4, 8)
-                .row(2, 4, 6, 12)
-                .build();
+        SimpleQueryResult qr = QueryResults.builder()
+                                           .row(1, 2, 3, 4)
+                                           .row(5, 6, 7, 7)
+                                           .row(1, 2, 4, 8)
+                                           .row(2, 4, 6, 12)
+                                           .build();
 
         Iterator<Integer> it = qr.map(r -> r.getInteger(0));
         List<Integer> result = new ArrayList<>(4);
@@ -177,3 +178,4 @@ public class QueryResultTest
         assertThat(result).isEqualTo(Arrays.asList(1, 5, 1, 2));
     }
 }
+

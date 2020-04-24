@@ -15,17 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.cassandra.distributed.api;
+package org.apache.cassandra.distributed.shared;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.cassandra.distributed.api.QueryResult;
 
 /**
  * A table of data representing a complete query result.
@@ -60,7 +61,7 @@ import java.util.stream.Stream;
  * points to newer data.  If this behavior is not desirable and access is needed between calls, then {@link Row#copy()}
  * should be used; this will clone the {@link Row} and return a new object pointing to the same data.
  */
-public class CompleteQueryResult implements QueryResult
+public class SimpleQueryResult implements QueryResult
 {
     private final String[] names;
     private final Object[][] results;
@@ -68,7 +69,7 @@ public class CompleteQueryResult implements QueryResult
     private final Row row;
     private int offset = -1;
 
-    public CompleteQueryResult(String[] names, Object[][] results)
+    public SimpleQueryResult(String[] names, Object[][] results)
     {
         this.names = Objects.requireNonNull(names, "names");
         this.results = results;
@@ -76,7 +77,7 @@ public class CompleteQueryResult implements QueryResult
         this.filter = ignore -> true;
     }
 
-    private CompleteQueryResult(String[] names, Object[][] results, Predicate<Row> filter, int offset)
+    private SimpleQueryResult(String[] names, Object[][] results, Predicate<Row> filter, int offset)
     {
         this.names = names;
         this.results = results;
@@ -85,14 +86,14 @@ public class CompleteQueryResult implements QueryResult
         this.row = new Row(names);
     }
 
-    public List<String> getNames()
+    public List<String> names()
     {
         return Collections.unmodifiableList(Arrays.asList(names));
     }
 
-    public CompleteQueryResult filter(Predicate<Row> fn)
+    public SimpleQueryResult filter(Predicate<Row> fn)
     {
-        return new CompleteQueryResult(names, results, filter.and(fn), offset);
+        return new SimpleQueryResult(names, results, filter.and(fn), offset);
     }
 
     /**
